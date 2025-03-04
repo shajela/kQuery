@@ -30,6 +30,16 @@ To make a query:
 make query
 ```
 
+To start Weaviate instance (note: instance will automatically start if `make query` or `make scrape` is run and no instance is detected):
+```
+make start-db
+```
+
+To stop Weaviate instance:
+```
+make stop-db
+```
+
 ## Example Use-case
 ```
 make query
