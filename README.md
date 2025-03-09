@@ -13,7 +13,7 @@ kQuery is a CLI tool that retrieves kubernetes metric data from natural language
 | Name      | Description | Default | Required
 | --------- | ----------- | ------- | --------
 | `EXT`  | If the application is being run locally, set to 'true.' If the application is deployed in the cluster itself, set to 'false.' Note: the latter behavior is not yet supported. | false | No |
-| `CLUSTER_NAME` | The cluster to be monitored. | - | Yes |
+| `CLUSTER_NAME` | The cluster to be monitored. Required if running application code outside of the cluster. | - | No |
 | `DEV`    | To use the Ollama API, set to 'true.' To use the OpenAI API, set to 'false.' | false | No |
 | `EMBEDDING` | The embedding model to be used. For more information, check the documentation of the configured provider. | - | Yes 
 | `MODEL` | The generative model to be used. For more information, check the documentation of the configured provider. | - | Yes 
