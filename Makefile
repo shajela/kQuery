@@ -1,4 +1,4 @@
-.PHONY: scrape query init start-db stop-db build deploy
+.PHONY: scrape query init start-db stop-db build deploy clean-weaviate
 
 init:
     ifneq (,$(wildcard ./.env))
@@ -7,13 +7,13 @@ init:
     endif
 
 start-db:
-	@if [ -z "$$(docker ps -q -f name=deployments-weaviate-1)" ]; then \
+	@if [ -z "$$(docker ps -q -f name=weaviate-weaviate-1)" ]; then \
 		echo "Database container is not running. Starting..."; \
 		docker compose -f deployments/weaviate/compose.yaml up -d; \
 	fi
 
 stop-db:
-	@if [ "$$(docker ps -q -f name=deployments-weaviate-1)" ]; then \
+	@if [ "$$(docker ps -q -f name=weaviate-weaviate-1)" ]; then \
 		echo "Stopping database container..."; \
         docker compose -f deployments/weaviate/compose.yaml down; \
     fi
@@ -39,3 +39,6 @@ destroy:
 	kubectl delete clusterrolebinding kquery
 	kubectl delete deployments/scraper
 	kubectl delete namespace kquery
+
+clean-weaviate:
+	docker volume rm weaviate_weaviate_data

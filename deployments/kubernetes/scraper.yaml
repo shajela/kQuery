@@ -24,7 +24,7 @@ spec:
         - name: MODEL
           value: llama3
         - name: WEAVITE_HOST
-          value: localhost:8080
+          value: host.docker.internal:11434
         - name: DEV
           value: "true"
         resources:
@@ -34,6 +34,3 @@ spec:
           requests:
             memory: "128Mi"  # Initial memory request
             cpu: "100m"       # Initial CPU request
-
-# You're gonna have to deploy ollama on k8s for this to work
-# Also need to figure out how the pod will communicate with weavite

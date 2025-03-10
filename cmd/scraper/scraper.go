@@ -25,10 +25,6 @@ import (
 	"github.com/openai/openai-go"
 )
 
-// https://github.com/ollama/ollama/blob/main/docs/api.md
-const ollamaBasePort = "11434"
-const ollamaBaseUrl = "http://localhost:11434/api/embed"
-
 const openAIBaseUrl = "https://api.openai.com/v1/embeddings"
 
 type Spec struct {
@@ -153,9 +149,15 @@ func embed(pm *v1beta1.PodMetricsList) (*map[string]*Pod, error) {
 			}
 
 			// Send request to ollama
+			// assuming running in cluster
+			ollamaBaseUrl := "http://host.docker.internal:11434/api/embed"
+			if ext, _ := envutils.LookupEnv("EXT"); ext == "true" {
+				// https://github.com/ollama/ollama/blob/main/docs/api.md
+				ollamaBaseUrl = "http://localhost:11434/api/embed"
+			}
 			res, err := embeddings.ReqEmb(ollamaBaseUrl, payload, nil)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("Error requesting embedding: %s", err.Error())
 			}
 
 			// Set cur pod's embedding value
@@ -225,13 +227,13 @@ func push(pods *map[string]*Pod) error {
 
 	client, err := weaviate.NewClient(cfg)
 	if err != nil {
-		fmt.Println(err)
+		return fmt.Errorf("Could not create weaviate client: %s", err.Error())
 	}
 
 	// Check the connection
 	_, err = client.Misc().ReadyChecker().Do(context.Background())
 	if err != nil {
-		return err
+		return fmt.Errorf("Could not establish connection to weaviate instance: %s", err.Error())
 	}
 
 	moduleConfig := make(map[string]interface{})
