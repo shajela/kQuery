@@ -227,13 +227,13 @@ func push(pods *map[string]*Pod) error {
 
 	client, err := weaviate.NewClient(cfg)
 	if err != nil {
-		return fmt.Errorf("Could not create weaviate client: %s", err.Error())
+		return fmt.Errorf("Could not create weaviate client: %v", err)
 	}
 
 	// Check the connection
-	_, err = client.Misc().ReadyChecker().Do(context.Background())
-	if err != nil {
-		return fmt.Errorf("Could not establish connection to weaviate instance: %s", err.Error())
+	rc, err := client.Misc().ReadyChecker().Do(context.Background())
+	if err != nil || !rc {
+		return fmt.Errorf("Could not establish connection to weaviate instance: %v\nReady checker: %t", err, rc)
 	}
 
 	moduleConfig := make(map[string]interface{})

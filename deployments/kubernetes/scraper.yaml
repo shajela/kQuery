@@ -24,7 +24,7 @@ spec:
         - name: MODEL
           value: llama3
         - name: WEAVITE_HOST
-          value: host.docker.internal:11434
+          value: host.docker.internal:8080
         - name: DEV
           value: "true"
         resources:
