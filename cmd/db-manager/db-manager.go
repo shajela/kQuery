@@ -40,6 +40,7 @@ func cleanup() error {
 	}
 
 	// TODO: delete n oldest objects
+	// https://weaviate.io/developers/weaviate/api/graphql/filters#by-timestamps
 	where := filters.Where().
 		WithPath([]string{"_creationTimeUnix"}).
 		WithOperator(filters.LessThan).
