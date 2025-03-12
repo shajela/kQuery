@@ -18,6 +18,7 @@ kQuery is a CLI tool that retrieves kubernetes metric data from natural language
 | `EMBEDDING` | The embedding model to be used. For more information, check the documentation of the configured provider. | - | Yes 
 | `MODEL` | The generative model to be used. For more information, check the documentation of the configured provider. | - | Yes 
 | `WEAVITE_HOST` | The address of the Weaviate instance to connect to. | - | Yes
+| `CLEANUP_INTERVAL` | The amount of time in seconds to wait between cleanup operations for the Weaviate instance. | 300 | No
 
 ## Usage
 To populate Weaviate instance:

@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/shajela/k8s-tool/internal/dbutils"
 	"github.com/shajela/k8s-tool/internal/envutils"
 	"github.com/shajela/k8s-tool/internal/generate"
 
@@ -76,19 +77,13 @@ func genRes(query string) (*models.GraphQLResponse, error) {
 			graphql.Field{Name: "namespace"},
 			graphql.Field{Name: "cpu"},
 			graphql.Field{Name: "mem"},
-			graphql.Field{Name: "ts"},
 		).
 		WithGenerativeSearch(gs).
 		Do(context.Background())
 
+	err = dbutils.HandleErr(res, err)
 	if err != nil {
 		return nil, err
-	} else if res.Errors != nil {
-		errs := make([]string, len(res.Errors))
-		for i, e := range res.Errors {
-			errs[i] = e.Message
-		}
-		return nil, fmt.Errorf("Error in GraphQL response:\n%s", strings.Join(errs, "\n"))
 	}
 
 	return res, nil

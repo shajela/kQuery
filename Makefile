@@ -24,6 +24,9 @@ scraper: start-db init
 query: start-db init
 	go run cmd/query/query.go
 
+db-manager: start-db init
+	go run cmd/db-manager/db-manager.go
+
 build:
 	docker build -t hajelasumer422/scraper:latest -f build/scraper/Dockerfile .
 	docker build -t hajelasumer422/query:latest -f build/query/Dockerfile .
@@ -40,5 +43,5 @@ destroy:
 	kubectl delete deployments/scraper
 	kubectl delete namespace kquery
 
-clean-weaviate:
+rm-volume:
 	docker volume rm weaviate_weaviate_data

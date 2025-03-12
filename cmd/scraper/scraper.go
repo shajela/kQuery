@@ -7,6 +7,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/shajela/k8s-tool/internal/dbutils"
 	"github.com/shajela/k8s-tool/internal/embeddings"
 	"github.com/shajela/k8s-tool/internal/envutils"
 	"github.com/shajela/k8s-tool/internal/schemas"
@@ -19,7 +20,6 @@ import (
 	"k8s.io/metrics/pkg/client/clientset/versioned"
 
 	ollama "github.com/ollama/ollama/api"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	"github.com/weaviate/weaviate/entities/models"
 
 	"github.com/openai/openai-go"
@@ -32,7 +32,6 @@ type Spec struct {
 	Name      string
 	Cpu       string
 	Mem       string
-	Ts        string
 }
 
 type Pod struct {
@@ -114,7 +113,6 @@ func embed(pm *v1beta1.PodMetricsList) (*map[string]*Pod, error) {
 		for _, c := range i.Containers {
 			cpu := c.Usage[v1.ResourceCPU]
 			mem := c.Usage[v1.ResourceMemory]
-			ts := i.Timestamp
 
 			pods[c.Name] = &Pod{
 				Spec: Spec{
@@ -122,7 +120,6 @@ func embed(pm *v1beta1.PodMetricsList) (*map[string]*Pod, error) {
 					Name:      i.GetObjectMeta().GetName(),
 					Cpu:       cpu.String(),
 					Mem:       mem.String(),
-					Ts:        ts.String(),
 				},
 			}
 		}
@@ -215,19 +212,10 @@ func embed(pm *v1beta1.PodMetricsList) (*map[string]*Pod, error) {
 }
 
 func push(pods *map[string]*Pod) error {
-	weaviteHost, err := envutils.LookupEnv("WEAVITE_HOST")
+	// Get weaviate client
+	client, err := dbutils.WeaviateClient()
 	if err != nil {
 		return err
-	}
-
-	cfg := weaviate.Config{
-		Host:   weaviteHost,
-		Scheme: "http",
-	}
-
-	client, err := weaviate.NewClient(cfg)
-	if err != nil {
-		return fmt.Errorf("Could not create weaviate client: %v", err)
 	}
 
 	// Check the connection
@@ -254,25 +242,32 @@ func push(pods *map[string]*Pod) error {
 			"model": model,
 		}
 	}
-	log.Printf("moduleConfig: %v", moduleConfig)
 
 	// Create schema for class if necessary
-	err = schemas.InitSchema(client, &models.Class{
+	class := models.Class{
 		Class:        "Pod",
 		Vectorizer:   "none",
 		ModuleConfig: moduleConfig,
+		InvertedIndexConfig: &models.InvertedIndexConfig{
+			IndexTimestamps: true,
+		},
 		Properties: []*models.Property{
 			{Name: "namespace", DataType: []string{"string"}},
 			{Name: "name", DataType: []string{"string"}},
 			{Name: "cpu", DataType: []string{"string"}},
 			{Name: "mem", DataType: []string{"string"}},
-			{Name: "ts", DataType: []string{"string"}},
 		},
-	})
+	}
+	err = schemas.InitSchema(client, &class)
 
 	if err != nil {
-		log.Fatalf("Failed to create schema: %v", err)
+		return fmt.Errorf("Failed to create schema: %v", err)
 	}
+	o, err := class.MarshalBinary()
+	if err != nil {
+		return fmt.Errorf("Failed marshal class: %v", err)
+	}
+	log.Printf("Class:\n%s", string(o))
 
 	// Create objects
 	var objects []*models.Object
@@ -284,7 +279,6 @@ func push(pods *map[string]*Pod) error {
 				"name":      p.Spec.Name,
 				"cpu":       p.Spec.Cpu,
 				"mem":       p.Spec.Mem,
-				"ts":        p.Spec.Ts,
 			},
 			Vector: p.Embedding,
 		})
