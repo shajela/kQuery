@@ -10,7 +10,6 @@ import (
 	"github.com/shajela/k8s-tool/internal/dbutils"
 	"github.com/shajela/k8s-tool/internal/envutils"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/filters"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 )
 
 func main() {
@@ -39,24 +38,31 @@ func cleanup() error {
 		return err
 	}
 
-	// TODO: delete n oldest objects
-	// https://weaviate.io/developers/weaviate/api/graphql/filters#by-timestamps
+	// Keep for one hour by default
+	rp := 3600
+	if seconds, err := envutils.LookupEnv("RETENTION_PERIOD"); err == nil {
+		rp, err = strconv.Atoi(seconds)
+		if err != nil {
+			panic(fmt.Errorf("Error parsing RETENTION_PERIOD: %v", err))
+		}
+	}
+
 	where := filters.Where().
 		WithPath([]string{"_creationTimeUnix"}).
 		WithOperator(filters.LessThan).
-		WithValueDate(time.Now())
-	res, err := client.GraphQL().Get().
-		WithClassName("Pod").
-		WithFields(
-			graphql.Field{Name: "name"},
-		).
-		WithWhere(where).
-		Do(context.Background())
+		WithValueDate(time.Now().Add(-time.Second * time.Duration(rp)))
 
-	err = dbutils.HandleErr(res, err)
+	res, err := client.Batch().ObjectsBatchDeleter().
+		WithClassName("Pod").
+		WithWhere(where).
+		WithOutput("verbose").
+		Do(context.Background())
 	if err != nil {
 		return err
 	}
-	log.Println(res)
+
+	for _, o := range res.Results.Objects {
+		log.Printf("Deleted object with id %v", o.ID)
+	}
 	return nil
 }
