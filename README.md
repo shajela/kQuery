@@ -19,7 +19,8 @@ kQuery is a CLI tool that retrieves kubernetes metric data from natural language
 | `MODEL` | The generative model to be used. For more information, check the documentation of the configured provider. | - | Yes 
 | `WEAVITE_HOST` | The address of the Weaviate instance to connect to. | - | Yes
 | `CLEANUP_INTERVAL` | The amount of time in seconds to wait between cleanup operations for the Weaviate instance. | 300 | No
-| `RETENTION_PERIOD` | During a cleanup operation, the application will take the current time and subtract `RETENTION_PERIOD`. Any entries older than this calculated timestamp will be deleted from the Weaviate instance. Configured in seconds. | 3600 | No
+| `RETENTION_PERIOD` | During a cleanup operation, the application will take the current time and subtract `RETENTION_PERIOD`. Any entries older than this calculated timestamp will be deleted from the Weaviate instance. Configured in seconds. | 86400 | No
+| `SCRAPE_INTERVAL` | The number of seconds to wait between consecutive exectutions of scraping the metrics API, embedding, and pushing to the Weaviate instance. | 300 | No
 
 ## Usage
 To populate Weaviate instance:

@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/shajela/k8s-tool/internal/dbutils"
 	"github.com/shajela/k8s-tool/internal/embeddings"
@@ -40,19 +42,31 @@ type Pod struct {
 }
 
 func main() {
-	pm, err := poll()
-	if err != nil {
-		panic(err)
+	scrapeInterval := 300
+	if interval, err := envutils.LookupEnv("SCRAPE_INTERVAL"); err == nil {
+		scrapeInterval, err = strconv.Atoi(interval)
+		if err != nil {
+			panic(fmt.Errorf("Error parsing SCRAPE_INTERVAL: %v", err))
+		}
 	}
 
-	pods, err := embed(pm)
-	if err != nil {
-		panic(err)
-	}
+	for {
+		time.Sleep(time.Second * time.Duration(scrapeInterval))
 
-	err = push(pods)
-	if err != nil {
-		panic(err)
+		pm, err := poll()
+		if err != nil {
+			panic(err)
+		}
+
+		pods, err := embed(pm)
+		if err != nil {
+			panic(err)
+		}
+
+		err = push(pods)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 

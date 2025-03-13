@@ -1,34 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: scraper
+  name: db-manager
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: scraper
+      app: db-manager
   template:
     metadata:
       labels:
-        app: scraper
+        app: db-manager
     spec:
       serviceAccountName: kquery
       containers:
-      - name: scraper
-        image: hajelasumer422/scraper:latest
+      - name: db-manager
+        image: hajelasumer422/db-manager:latest
         ports:
         - containerPort: 80
         env:
-        - name: EMBEDDING
-          value: nomic-embed-text
-        - name: MODEL
-          value: llama3
-        - name: WEAVITE_HOST
-          value: host.docker.internal:8080
-        - name: DEV
-          value: "true"
-        - name: SCRAPE_INTERVAL
+        - name: CLEANUP_INTERVAL
           value: "300"
+        - name: RETENTION_PERIOD
+          value: "3600"
         resources:
           limits:
             memory: "256Mi"  # Maximum memory allowed

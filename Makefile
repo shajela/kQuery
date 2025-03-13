@@ -30,11 +30,13 @@ db-manager: start-db init
 build:
 	docker build -t hajelasumer422/scraper:latest -f build/scraper/Dockerfile .
 	docker build -t hajelasumer422/query:latest -f build/query/Dockerfile .
+	docker build -t hajelasumer422/db-manager:latest -f build/db-manager/Dockerfile .
 
 deploy:
 	kubectl create -f deployments/kubernetes/namespace.yaml
 	kubectl create -f deployments/kubernetes/rbac.yaml
 	kubectl apply -f deployments/kubernetes/scraper.yaml -n kquery
+	kubectl apply -f deployments/kubernetes/db-manager.yaml -n kquery
 
 destroy:
 	kubectl delete serviceaccount kquery

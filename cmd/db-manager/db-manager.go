@@ -38,8 +38,8 @@ func cleanup() error {
 		return err
 	}
 
-	// Keep for one hour by default
-	rp := 3600
+	// Keep for one day by default
+	rp := 60 * 60 * 24
 	if seconds, err := envutils.LookupEnv("RETENTION_PERIOD"); err == nil {
 		rp, err = strconv.Atoi(seconds)
 		if err != nil {
