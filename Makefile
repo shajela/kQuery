@@ -1,4 +1,4 @@
-.PHONY: scrape query init start-db stop-db build deploy clean-weaviate
+.PHONY: scrape query init start-db stop-db build deploy clean-weaviate run
 
 init:
     ifneq (,$(wildcard ./.env))
@@ -33,17 +33,25 @@ build:
 	docker build -t hajelasumer422/db-manager:latest -f build/db-manager/Dockerfile .
 
 deploy:
-	kubectl create -f deployments/kubernetes/namespace.yaml
-	kubectl create -f deployments/kubernetes/rbac.yaml
+	kubectl apply -f deployments/kubernetes/namespace.yaml
+	kubectl apply -f deployments/kubernetes/rbac.yaml
 	kubectl apply -f deployments/kubernetes/scraper.yaml -n kquery
 	kubectl apply -f deployments/kubernetes/db-manager.yaml -n kquery
+	kubectl apply -f deployments/kubernetes/query.yaml -n kquery
+	kubectl apply -f deployments/kubernetes/service.yaml -n kquery
 
 destroy:
-	kubectl delete serviceaccount kquery
+	kubectl delete serviceaccount kquery -n kquery
 	kubectl delete clusterrole kquery
 	kubectl delete clusterrolebinding kquery
-	kubectl delete deployments/scraper
+	kubectl delete deployments/scraper -n kquery
+	kubectl delete deployments/db-manager -n kquery
+	kubectl delete deployments/query -n kquery
+	kubectl delete service query-svc -n kquery
 	kubectl delete namespace kquery
 
-rm-volume:
+clean-weaviate:
 	docker volume rm weaviate_weaviate_data
+
+run:
+	kubectl port-forward service/query-svc 30010:$(PORT) -n kquery

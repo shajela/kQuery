@@ -21,6 +21,7 @@ kQuery is a CLI tool that retrieves kubernetes metric data from natural language
 | `CLEANUP_INTERVAL` | The amount of time in seconds to wait between cleanup operations for the Weaviate instance. | 300 | No
 | `RETENTION_PERIOD` | During a cleanup operation, the application will take the current time and subtract `RETENTION_PERIOD`. Any entries older than this calculated timestamp will be deleted from the Weaviate instance. Configured in seconds. | 86400 | No
 | `SCRAPE_INTERVAL` | The number of seconds to wait between consecutive exectutions of scraping the metrics API, embedding, and pushing to the Weaviate instance. | 300 | No
+| `PORT` | The port of `query` to serve requests. | - | Yes
 
 ## Usage
 To populate Weaviate instance:

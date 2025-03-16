@@ -51,8 +51,6 @@ func main() {
 	}
 
 	for {
-		time.Sleep(time.Second * time.Duration(scrapeInterval))
-
 		pm, err := poll()
 		if err != nil {
 			panic(err)
@@ -67,6 +65,8 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+
+		time.Sleep(time.Second * time.Duration(scrapeInterval))
 	}
 }
 
