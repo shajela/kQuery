@@ -1,6 +1,7 @@
 # kQuery
 
 kQuery is a Kubernetes-native framework that retrieves metric data from natural language queries. Driven by RAG architecture, kQuery runs within the cluster to provide seamless access to real-time insights.
+
 ![demo](https://github.com/shajela/kQuery/blob/main/demo.gif)
 
 ## Requirements
