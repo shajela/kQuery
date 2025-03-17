@@ -14,7 +14,7 @@ import (
 func main() {
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		fmt.Printf("\nEnter query ('exit' to leave): ")
+		fmt.Print("\nEnter query ('exit' to leave): ")
 		query, err := reader.ReadString('\n')
 		if err != nil {
 			panic(err)

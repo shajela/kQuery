@@ -1,4 +1,4 @@
-.PHONY: scrape query init start-db stop-db build deploy clean-weaviate run
+.PHONY: scrape query init start-db stop-db build deploy clean-weaviate run start-all stop-all
 
 init:
     ifneq (,$(wildcard ./.env))
@@ -55,3 +55,7 @@ clean-weaviate:
 
 run:
 	kubectl port-forward service/query-svc 30010:$(PORT) -n kquery
+
+start-all: start-db deploy
+
+stop-all: destroy stop-db clean-weaviate
