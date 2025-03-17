@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
+	"time"
 
+	"github.com/shajela/k8s-tool/internal/dbutils"
 	"github.com/shajela/k8s-tool/internal/embeddings"
 	"github.com/shajela/k8s-tool/internal/envutils"
 	"github.com/shajela/k8s-tool/internal/schemas"
@@ -19,15 +22,10 @@ import (
 	"k8s.io/metrics/pkg/client/clientset/versioned"
 
 	ollama "github.com/ollama/ollama/api"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	"github.com/weaviate/weaviate/entities/models"
 
 	"github.com/openai/openai-go"
 )
-
-// https://github.com/ollama/ollama/blob/main/docs/api.md
-const ollamaBasePort = "11434"
-const ollamaBaseUrl = "http://localhost:11434/api/embed"
 
 const openAIBaseUrl = "https://api.openai.com/v1/embeddings"
 
@@ -36,7 +34,6 @@ type Spec struct {
 	Name      string
 	Cpu       string
 	Mem       string
-	Ts        string
 }
 
 type Pod struct {
@@ -45,19 +42,31 @@ type Pod struct {
 }
 
 func main() {
-	pm, err := poll()
-	if err != nil {
-		panic(err)
+	scrapeInterval := 300
+	if interval, err := envutils.LookupEnv("SCRAPE_INTERVAL"); err == nil {
+		scrapeInterval, err = strconv.Atoi(interval)
+		if err != nil {
+			panic(fmt.Errorf("Error parsing SCRAPE_INTERVAL: %v", err))
+		}
 	}
 
-	pods, err := embed(pm)
-	if err != nil {
-		panic(err)
-	}
+	for {
+		pm, err := poll()
+		if err != nil {
+			panic(err)
+		}
 
-	err = push(pods)
-	if err != nil {
-		panic(err)
+		pods, err := embed(pm)
+		if err != nil {
+			panic(err)
+		}
+
+		err = push(pods)
+		if err != nil {
+			panic(err)
+		}
+
+		time.Sleep(time.Second * time.Duration(scrapeInterval))
 	}
 }
 
@@ -118,7 +127,6 @@ func embed(pm *v1beta1.PodMetricsList) (*map[string]*Pod, error) {
 		for _, c := range i.Containers {
 			cpu := c.Usage[v1.ResourceCPU]
 			mem := c.Usage[v1.ResourceMemory]
-			ts := i.Timestamp
 
 			pods[c.Name] = &Pod{
 				Spec: Spec{
@@ -126,7 +134,6 @@ func embed(pm *v1beta1.PodMetricsList) (*map[string]*Pod, error) {
 					Name:      i.GetObjectMeta().GetName(),
 					Cpu:       cpu.String(),
 					Mem:       mem.String(),
-					Ts:        ts.String(),
 				},
 			}
 		}
@@ -153,9 +160,15 @@ func embed(pm *v1beta1.PodMetricsList) (*map[string]*Pod, error) {
 			}
 
 			// Send request to ollama
+			// assuming running in cluster
+			ollamaBaseUrl := "http://host.docker.internal:11434/api/embed"
+			if ext, _ := envutils.LookupEnv("EXT"); ext == "true" {
+				// https://github.com/ollama/ollama/blob/main/docs/api.md
+				ollamaBaseUrl = "http://localhost:11434/api/embed"
+			}
 			res, err := embeddings.ReqEmb(ollamaBaseUrl, payload, nil)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("Error requesting embedding: %s", err.Error())
 			}
 
 			// Set cur pod's embedding value
@@ -213,25 +226,16 @@ func embed(pm *v1beta1.PodMetricsList) (*map[string]*Pod, error) {
 }
 
 func push(pods *map[string]*Pod) error {
-	weaviteHost, err := envutils.LookupEnv("WEAVITE_HOST")
+	// Get weaviate client
+	client, err := dbutils.WeaviateClient()
 	if err != nil {
 		return err
-	}
-
-	cfg := weaviate.Config{
-		Host:   weaviteHost,
-		Scheme: "http",
-	}
-
-	client, err := weaviate.NewClient(cfg)
-	if err != nil {
-		fmt.Println(err)
 	}
 
 	// Check the connection
-	_, err = client.Misc().ReadyChecker().Do(context.Background())
-	if err != nil {
-		return err
+	rc, err := client.Misc().ReadyChecker().Do(context.Background())
+	if err != nil || !rc {
+		return fmt.Errorf("Could not establish connection to weaviate instance: %v\nReady checker: %t", err, rc)
 	}
 
 	moduleConfig := make(map[string]interface{})
@@ -252,25 +256,32 @@ func push(pods *map[string]*Pod) error {
 			"model": model,
 		}
 	}
-	log.Printf("moduleConfig: %v", moduleConfig)
 
 	// Create schema for class if necessary
-	err = schemas.InitSchema(client, &models.Class{
+	class := models.Class{
 		Class:        "Pod",
 		Vectorizer:   "none",
 		ModuleConfig: moduleConfig,
+		InvertedIndexConfig: &models.InvertedIndexConfig{
+			IndexTimestamps: true,
+		},
 		Properties: []*models.Property{
 			{Name: "namespace", DataType: []string{"string"}},
 			{Name: "name", DataType: []string{"string"}},
 			{Name: "cpu", DataType: []string{"string"}},
 			{Name: "mem", DataType: []string{"string"}},
-			{Name: "ts", DataType: []string{"string"}},
 		},
-	})
+	}
+	err = schemas.InitSchema(client, &class)
 
 	if err != nil {
-		log.Fatalf("Failed to create schema: %v", err)
+		return fmt.Errorf("Failed to create schema: %v", err)
 	}
+	o, err := class.MarshalBinary()
+	if err != nil {
+		return fmt.Errorf("Failed marshal class: %v", err)
+	}
+	log.Printf("Class:\n%s", string(o))
 
 	// Create objects
 	var objects []*models.Object
@@ -282,7 +293,6 @@ func push(pods *map[string]*Pod) error {
 				"name":      p.Spec.Name,
 				"cpu":       p.Spec.Cpu,
 				"mem":       p.Spec.Mem,
-				"ts":        p.Spec.Ts,
 			},
 			Vector: p.Embedding,
 		})

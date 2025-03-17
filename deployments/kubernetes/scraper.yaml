@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scraper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scraper
+  template:
+    metadata:
+      labels:
+        app: scraper
+    spec:
+      serviceAccountName: kquery
+      containers:
+      - name: scraper
+        image: hajelasumer422/scraper:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: EMBEDDING
+          value: nomic-embed-text
+        - name: MODEL
+          value: llama3
+        - name: WEAVITE_HOST
+          value: host.docker.internal:8080
+        - name: DEV
+          value: "true"
+        - name: SCRAPE_INTERVAL
+          value: "300"
+        resources:
+          limits:
+            memory: "256Mi"  # Maximum memory allowed
+            cpu: "200m"       # Maximum CPU allowed (200 milliCPU)
+          requests:
+            memory: "128Mi"  # Initial memory request
+            cpu: "100m"       # Initial CPU request
