@@ -1,6 +1,6 @@
-Output demo2.gif
+Output demo.gif
 
-Set FontSize 18
+Set FontSize 24
 Set Width 1600
 Set Height 800
 
@@ -13,12 +13,20 @@ Enter
 Sleep 2
 
 # First query
-Type "Which pods are consuming the most CPU?"
+Type "What are the pods consuming the most CPU in my cluster?"
 Enter
 
 Wait@20s /.*Enter query \('exit' to leave\):.*/
 
-Sleep 8  # Allow time to view the output
+Sleep 10  # Allow time to view the output
+
+# Second query
+Type "What is the average memory usage of pods in my cluster?"
+Enter
+
+Wait@20s /.*Enter query \('exit' to leave\):.*/
+
+Sleep 12  # Allow time to view the output
 
 # Exit kQuery
 Type "exit"

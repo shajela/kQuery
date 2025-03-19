@@ -17,7 +17,7 @@ kQuery is a Kubernetes-native framework that retrieves metric data from natural 
 | `EXT`  | - | If the application is being run locally, set to 'true.' If the application is deployed in the cluster itself, set to 'false.' | false | No |
 | `CLUSTER_NAME` | - | The cluster to be monitored. Required if running application code outside of the cluster. | - | No |
 | `DEV`    | `scraper` | To use the Ollama API, set to 'true.' To use the OpenAI API, set to 'false.' If false, `OPEN_AI_API_KEY` must be provided. | false | No |
-| `OPENAI_API_KEY`    | `scraper` | OpenAI API key. Must be set if `DEV` is set to false. | - | No |
+| `OPENAI_API_KEY`    | `scraper` | OpenAI API key. Must be set if `DEV` is set to false. Additionally, `OPENAI_APIKEY` environment variable must be configured in the Weaviate instance. See [Weaviate docs](https://weaviate.io/developers/weaviate/model-providers/openai/generative) for more information. | - | No |
 | `EMBEDDING` | `scraper` | The embedding model to be used. For more information, check the documentation of the configured provider. | - | Yes 
 | `MODEL` | `scraper` | The generative model to be used. For more information, check the documentation of the configured provider. | - | Yes 
 | `WEAVITE_HOST` | `query`,`scraper`,`db-manager` | The address of the Weaviate instance to connect to. | - | Yes
